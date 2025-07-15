@@ -2,7 +2,7 @@
 substitutions:
   _REGION: 'europe-west8'
   _SERVICE_NAME: 'TradeTracker-costi-ieri' # Modifica questo per il tuo nuovo servizio
-  _IMAGE_NAME: 'TradeTracker-costi-ieri'   # Modifica questo per la tua nuova immagine
+  _IMAGE_NAME: 'tradetracker-costi-ieri'   # Modifica questo per la tua nuova immagine
 
 steps:
   # 1. Costruisce l'immagine Docker e la tagga per Artifact Registry
