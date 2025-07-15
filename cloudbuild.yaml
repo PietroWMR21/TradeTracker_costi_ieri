@@ -1,0 +1,42 @@
+# Definisce le variabili per una facile configurazione e riutilizzo
+substitutions:
+  _REGION: 'europe-west8'
+  _SERVICE_NAME: 'tradetracker-selenium' # Modifica questo per il tuo nuovo servizio
+  _IMAGE_NAME: 'tradetracker-selenium'   # Modifica questo per la tua nuova immagine
+
+steps:
+  # 1. Costruisce l'immagine Docker e la tagga per Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_IMAGE_NAME}'
+      - '.'
+
+  # 2. Esegue il push dell'immagine ad Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_IMAGE_NAME}'
+
+  # 3. Esegue il deploy del servizio su Cloud Run con configurazione esplicita
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_IMAGE_NAME}'
+      - '--platform'
+      - 'managed'
+      - '--region'
+      - '${_REGION}'
+      - '--allow-unauthenticated'
+      # Configura risorse e timeout per il servizio
+      - '--timeout=300' # Imposta il timeout della richiesta a 5 minuti (300s)
+      - '--memory=1Gi'  # Assegna 1 GB di memoria
+
+# Specifica quale immagine deve essere registrata da Cloud Build
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_IMAGE_NAME}'
