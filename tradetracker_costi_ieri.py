@@ -1,8 +1,8 @@
 import os
 import time
 import logging
-import calendar
-from datetime import datetime
+# L'import 'calendar' non è più necessario con la nuova logica
+from datetime import datetime, timedelta # <-- 1. MODIFICA: Aggiunto timedelta
 from flask import Flask, request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -48,12 +48,11 @@ def run_selenium_script(username, password, folder_id):
     In caso di errore, cattura uno screenshot e lo carica su Cloud Storage.
     """
     logger.info("Avvio dello script Selenium.")
-    driver = None  # Inizializza la variabile driver
+    driver = None
     download_dir = "/tmp"
-    new_filename = None  # Variabile da restituire
+    new_filename = None
 
     try:
-        # Configura le opzioni di Chrome in modalità headless con preferenze di download in /tmp
         options = Options()
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
@@ -71,51 +70,39 @@ def run_selenium_script(username, password, folder_id):
         driver = webdriver.Chrome(options=options)
         logger.info("Driver Chrome inizializzato correttamente.")
         
-        # Naviga alla pagina di login di TradeTracker
         login_url = "https://merchant.tradetracker.com/user/login"
         logger.info(f"Navigazione verso la pagina di login: {login_url}")
         driver.get(login_url)
         logger.info("Pagina di login caricata, attesa di 8 secondi per il rendering completo.")
         time.sleep(8)
         
-        # Inserimento username
         username_xpath = "//*[@id='username']"
-        logger.info(f"Inserimento username '{username}' nel campo con XPath: {username_xpath}")
         username_field = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, username_xpath))
         )
         username_field.send_keys(username)
-        logger.info("Username inserito.")
         
-        # Inserimento password
         password_xpath = "//*[@id='password']"
-        logger.info(f"Inserimento password nel campo con XPath: {password_xpath}")
         password_field = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, password_xpath))
         )
         password_field.send_keys(password)
-        logger.info("Password inserita.")
         
-        # Clicca sul bottone di login
         login_button_xpath = "//*[@id='submitLogin']"
-        logger.info(f"Clic sul bottone di login con XPath: {login_button_xpath}")
         login_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, login_button_xpath))
         )
         login_button.click()
-        logger.info("Bottone di login cliccato.")
+        logger.info("Login eseguito.")
         time.sleep(5)
         
-        # Naviga direttamente alla pagina delle vendite
         sales_url = "https://merchant.tradetracker.com/affiliateTransaction/sales"
         logger.info(f"Navigazione verso la pagina delle vendite: {sales_url}")
         driver.get(sales_url)
         logger.info("Pagina delle vendite caricata, attesa di 8 secondi per il rendering completo.")
         time.sleep(8)
         
-        # Clic sul menù a tendina usando l'XPath specificato
         dropdown_xpath = "//*[@id='s2id_predefined-periods-p']/a"
-        logger.info(f"Clic sul menù a tendina con XPath: {dropdown_xpath}")
         dropdown = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.XPATH, dropdown_xpath))
         )
@@ -123,20 +110,8 @@ def run_selenium_script(username, password, folder_id):
         logger.info("Menù a tendina cliccato.")
         time.sleep(2)
         
-        # Verifica se l'elemento con XPath "//*[@id='select2-drop']" è presente
-        try:
-            drop_element = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//*[@id='select2-drop']"))
-            )
-            logger.info("Elemento con XPath '//*[@id=\"select2-drop\"]' trovato.")
-        except Exception as e:
-            logger.info("Elemento con XPath '//*[@id=\"select2-drop\"]' non trovato.")
-        
-        # Clicca sull'opzione basandosi sul suo testo visibile ("Ieri")
-        # Questo approccio è molto più robusto e affidabile degli ID dinamici.
         option_text_to_find = "Ieri"
         option_xpath = f"//div[@id='select2-drop']//li[div[contains(text(), '{option_text_to_find}')]]"
-        
         logger.info(f"Ricerca e clic sull'opzione che contiene il testo: '{option_text_to_find}'")
         option_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, option_xpath))
@@ -145,58 +120,38 @@ def run_selenium_script(username, password, folder_id):
         logger.info(f"Elemento '{option_text_to_find}' cliccato con successo.")
         time.sleep(2) 
         
-        # --- Esportazione del CSV ---
         export_csv_xpath = "//*[@id='listview-10-export-csv']"
-        logger.info(f"Clic sul bottone di export CSV con XPath: {export_csv_xpath}")
         export_csv_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, export_csv_xpath))
         )
         export_csv_button.click()
         logger.info("Bottone di export CSV cliccato.")
         
-        # Attendi il download del CSV
         logger.info("Attesa di 90 secondi per il download del CSV.")
         time.sleep(90)
         
-        # Trova il CSV più recente nella directory di download
         latest_csv = get_latest_csv(download_dir)
         logger.info(f"CSV scaricato individuato: {latest_csv}")
         
-        # Calcola il nome del mese precedente (in italiano)
-        today = datetime.today()
-        prev_month = today.month - 1 if today.month > 1 else 12
-        month_names = {
-            1: "gennaio",
-            2: "febbraio",
-            3: "marzo",
-            4: "aprile",
-            5: "maggio",
-            6: "giugno",
-            7: "luglio",
-            8: "agosto",
-            9: "settembre",
-            10: "ottobre",
-            11: "novembre",
-            12: "dicembre"
-        }
-        new_filename = f"{month_names[prev_month]}.csv"
+        # --- INIZIO BLOCCO MODIFICATO ---
+        # 2. MODIFICA: Calcola la data di ieri e formatta il nome del file
+        yesterday = datetime.today() - timedelta(days=1)
+        new_filename = f"{yesterday.strftime('%Y-%m-%d')}.csv"
+        # --- FINE BLOCCO MODIFICATO ---
+
         new_filepath = os.path.join(download_dir, new_filename)
         logger.info(f"Rinominazione del file in: {new_filepath}")
         os.rename(latest_csv, new_filepath)
         
-        # Costruisci il nome del blob nel bucket, includendo la cartella passata dalla API
         destination_blob_name = f"{folder_id}/{new_filename}"
         logger.info(f"Upload del file nel bucket 'tradetracker_selenium' nella cartella '{folder_id}' con nome blob: {destination_blob_name}")
         
-        # Carica il file sul bucket
         upload_to_gcs("tradetracker_selenium", new_filepath, destination_blob_name)
         
-        # Restituisce il nome del file creato
         return new_filename
         
     except Exception as e:
         logger.error(f"Errore durante l'esecuzione di Selenium: {repr(e)}")
-        # Se driver è inizializzato, prova a catturare uno screenshot dell'errore
         if driver is not None:
             try:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -214,17 +169,15 @@ def run_selenium_script(username, password, folder_id):
             driver.quit()
             logger.info("Driver chiuso.")
 
-# Definisci l'endpoint HTTP che avvia lo script e riceve username, password e folder_id come parametri GET
 @app.route('/run-selenium', methods=['GET'])
 def call_selenium():
     logger.info("Ricevuta richiesta per eseguire /run-selenium.")
     
-    # Recupera i parametri dalla query string
     username = request.args.get('username')
     password = request.args.get('password')
     folder_id = request.args.get('folder_id')
     
-    if not username or not password or not folder_id:
+    if not all([username, password, folder_id]):
         logger.error("Parametri mancanti: assicurarsi di passare username, password e folder_id.")
         return "username, password e folder_id sono richiesti", 400
     
