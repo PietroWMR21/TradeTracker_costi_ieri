@@ -132,15 +132,18 @@ def run_selenium_script(username, password, folder_id):
         except Exception as e:
             logger.info("Elemento con XPath '//*[@id=\"select2-drop\"]' non trovato.")
         
-        # Clicca sull'elemento interno con XPath "//*[@id='select2-results-1']/li[8]"
-        option_xpath = "//*[@id='select2-results-1']/li[8]"
-        logger.info(f"Clic sull'elemento interno con XPath: {option_xpath}")
+        # Clicca sull'opzione basandosi sul suo testo visibile ("Ieri")
+        # Questo approccio è molto più robusto e affidabile degli ID dinamici.
+        option_text_to_find = "Ieri"
+        option_xpath = f"//div[@id='select2-drop']//li[div[contains(text(), '{option_text_to_find}')]]"
+        
+        logger.info(f"Ricerca e clic sull'opzione che contiene il testo: '{option_text_to_find}'")
         option_element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, option_xpath))
         )
         option_element.click()
-        logger.info("Elemento interno cliccato con successo.")
-        time.sleep(2)
+        logger.info(f"Elemento '{option_text_to_find}' cliccato con successo.")
+        time.sleep(2) 
         
         # --- Esportazione del CSV ---
         export_csv_xpath = "//*[@id='listview-10-export-csv']"
