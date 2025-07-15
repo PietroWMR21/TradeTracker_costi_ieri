@@ -29,4 +29,4 @@ COPY . .
 
 # Comando per avviare il server Gunicorn con configurazione per produzione
 # Aumentato il timeout a 300 secondi per operazioni lunghe
-CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8080", "--timeout", "300", "tradetracker_scraper:app"]
+CMD ["gunicorn", "--workers", "1", "--threads", "8", "--bind", "0.0.0.0:8080", "--timeout", "300", "TradeTracker-costi-ieri:app"]
