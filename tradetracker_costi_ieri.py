@@ -139,7 +139,7 @@ def run_selenium_script(username, password, folder_id):
         logger.info("Bottone di export CSV cliccato.")
 
         logger.info("Attesa di 90 secondi per il download del CSV.")
-        time.sleep(90)
+        time.sleep(20)
 
         latest_csv = get_latest_csv(download_dir)
         logger.info(f"CSV scaricato individuato: {latest_csv}")
